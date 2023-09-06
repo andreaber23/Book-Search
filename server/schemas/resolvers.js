@@ -3,10 +3,17 @@ const { signToken } = require('../utils/auth');
 
 const resolvers = {
   Query: {
-    me: async (_, __, context) => {
-      return await User.findById(context.user._id).populate('savedBooks');
-    },
-  },
+      me: async (_, _, context) => {
+          if (context.user) {
+              const userData = await User
+                  .findOne({ _id: context.user._id })
+                  .select("-__v -password")
+                  .populate("books");
+              
+              return userData;
+          };
+      },
+  }, 
 
   Mutation: {
     login: async (_, { email, password }) => {
@@ -24,15 +31,15 @@ const resolvers = {
     },
 
     saveBook: async (_, { input }, context) => {
-      return await User.findByIdAndUpdate(
-        context.user._id,
+      return await User.findOneAndUpdate(
+        { _id: context.user._id }, 
         { $addToSet: { savedBooks: input } },
-        { new: true, runValidators: true }
-      ).populate('savedBooks');
+        { new: true },
+    ).populate('savedBooks');
     },
 
     removeBook: async (_, { bookId }, context) => {
-      return await User.findByIdAndUpdate(
+      return await User.findOneAndUpdate(
         context.user._id,
         { $pull: { savedBooks: { bookId } } },
         { new: true }
